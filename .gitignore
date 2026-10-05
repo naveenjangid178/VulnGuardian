@@ -15,6 +15,9 @@ node_modules
 # Testing
 coverage
 
+# Local uploaded source files
+apps/api/storage/
+
 # Turbo
 .turbo
 
