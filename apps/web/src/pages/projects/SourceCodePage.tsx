@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom';
 
 import {
+  createSnapshot,
   getSnapshots,
   getSnapshotFiles,
   uploadSourceFile,
@@ -44,6 +45,9 @@ export default function SourceCodePage() {
     useState(true);
 
   const [loadingFiles, setLoadingFiles] =
+    useState(false);
+
+  const [creatingSnapshot, setCreatingSnapshot] =
     useState(false);
 
   const [uploading, setUploading] =
@@ -144,56 +148,130 @@ export default function SourceCodePage() {
     }
   }
 
-  async function handleFileUpload(
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
+  async function handleCreateSnapshot() {
     if (!accessToken || !projectId) {
       navigate('/login', { replace: true });
       return;
     }
 
-    if (!selectedSnapshot) {
-      setError(
-        'Please select a snapshot before uploading files.',
-      );
-      return;
-    }
-
-    const selectedFiles = event.target.files;
-
-    if (
-      !selectedFiles ||
-      selectedFiles.length === 0
-    ) {
-      return;
-    }
-
-    setUploading(true);
+    setCreatingSnapshot(true);
     setError('');
 
     try {
-      for (const file of Array.from(selectedFiles)) {
-        await uploadSourceFile(
-          accessToken,
-          projectId,
-          selectedSnapshot.id,
-          file,
-        );
-      }
+      const snapshot = await createSnapshot(
+        accessToken,
+        projectId,
+        {
+          sourceType: 'UPLOAD',
+          storageKey: `projects/${projectId}/snapshots/pending`,
+          contentHash: `manual-${Date.now()}`,
+        },
+      );
 
-      await loadFiles(selectedSnapshot.id);
+      setSnapshots((current) => [
+        snapshot,
+        ...current.filter(
+          (item) => item.id !== snapshot.id,
+        ),
+      ]);
 
-      event.target.value = '';
+      setSelectedSnapshot(snapshot);
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
-          : 'Unable to upload source files.',
+          : 'Unable to create source snapshot.',
       );
     } finally {
-      setUploading(false);
+      setCreatingSnapshot(false);
     }
   }
+
+ async function handleFileUpload(
+  event: ChangeEvent<HTMLInputElement>,
+) {
+  if (!accessToken || !projectId) {
+    navigate('/login', { replace: true });
+    return;
+  }
+
+  if (!selectedSnapshot) {
+    setError(
+      'Please create or select a snapshot before uploading files.',
+    );
+    return;
+  }
+
+  const selectedFiles = event.target.files;
+
+  if (
+    !selectedFiles ||
+    selectedFiles.length === 0
+  ) {
+    return;
+  }
+
+  const allowedExtensions = [
+    '.js',
+    '.jsx',
+    '.ts',
+    '.tsx',
+    '.py',
+  ];
+
+  const maxFileSize = 5 * 1024 * 1024;
+
+  const invalidFiles: string[] = [];
+
+  for (const file of Array.from(selectedFiles)) {
+    const extension = getFileExtension(file.name);
+
+    if (!allowedExtensions.includes(extension)) {
+      invalidFiles.push(
+        `${file.name}: unsupported file type`,
+      );
+      continue;
+    }
+
+    if (file.size > maxFileSize) {
+      invalidFiles.push(
+        `${file.name}: file exceeds the 5 MB limit`,
+      );
+    }
+  }
+
+  if (invalidFiles.length > 0) {
+    setError(invalidFiles.join(' • '));
+    event.target.value = '';
+    return;
+  }
+
+  setUploading(true);
+  setError('');
+
+  try {
+    for (const file of Array.from(selectedFiles)) {
+      await uploadSourceFile(
+        accessToken,
+        projectId,
+        selectedSnapshot.id,
+        file,
+      );
+    }
+
+    await loadFiles(selectedSnapshot.id);
+
+    event.target.value = '';
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to upload source files.',
+    );
+  } finally {
+    setUploading(false);
+  }
+}
 
   function handleSnapshotSelect(
     snapshot: SourceSnapshot,
@@ -209,7 +287,6 @@ export default function SourceCodePage() {
     <main className="min-h-screen bg-[#070b14] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
 
-        {/* Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <button
@@ -231,31 +308,44 @@ export default function SourceCodePage() {
             </p>
           </div>
 
-          {/* Upload */}
-          <label
-            className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition ${
-              !selectedSnapshot || uploading
-                ? 'cursor-not-allowed bg-white/10 text-white/30'
-                : 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-500'
-            }`}
-          >
-            {uploading
-              ? 'Uploading...'
-              : 'Upload Files'}
+          <div className="flex flex-wrap gap-3">
 
-            <input
-              type="file"
-              multiple
-              disabled={
+            <button
+              type="button"
+              onClick={handleCreateSnapshot}
+              disabled={creatingSnapshot}
+              className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {creatingSnapshot
+                ? 'Creating...'
+                : '+ Create Snapshot'}
+            </button>
+
+            <label
+              className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                 !selectedSnapshot || uploading
-              }
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </label>
+                  ? 'cursor-not-allowed bg-white/10 text-white/30'
+                  : 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-500'
+              }`}
+            >
+              {uploading
+                ? 'Uploading...'
+                : 'Upload Files'}
+
+              <input
+                type="file"
+                multiple
+                disabled={
+                  !selectedSnapshot || uploading
+                }
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+
+          </div>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-6 flex items-start justify-between gap-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             <p>{error}</p>
@@ -270,10 +360,8 @@ export default function SourceCodePage() {
           </div>
         )}
 
-        {/* Main Content */}
         <div className="grid gap-5 lg:grid-cols-3">
 
-          {/* Snapshots */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.03]">
             <div className="border-b border-white/10 px-5 py-4">
               <h2 className="font-semibold">
@@ -366,7 +454,6 @@ export default function SourceCodePage() {
             </div>
           </section>
 
-          {/* Source Files */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.03]">
             <div className="border-b border-white/10 px-5 py-4">
               <h2 className="font-semibold">
@@ -381,7 +468,7 @@ export default function SourceCodePage() {
             <div className="p-3">
               {!selectedSnapshot ? (
                 <div className="px-3 py-10 text-center text-sm text-white/40">
-                  Select a snapshot first.
+                  Create or select a snapshot first.
                 </div>
               ) : loadingFiles ? (
                 <div className="space-y-2">
@@ -447,7 +534,6 @@ export default function SourceCodePage() {
             </div>
           </section>
 
-          {/* File Details */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.03]">
             <div className="border-b border-white/10 px-5 py-4">
               <h2 className="font-semibold">
@@ -472,7 +558,6 @@ export default function SourceCodePage() {
                 </div>
               ) : (
                 <div className="space-y-5">
-
                   <Detail
                     label="File"
                     value={selectedFile.path}
@@ -508,11 +593,11 @@ export default function SourceCodePage() {
                     value={selectedFile.storageKey}
                     mono
                   />
-
                 </div>
               )}
             </div>
           </section>
+
         </div>
       </div>
     </main>
@@ -573,4 +658,19 @@ function formatFileSize(bytes: number): string {
 
 function formatDate(date: string): string {
   return new Date(date).toLocaleString();
+}
+
+function getFileExtension(
+  fileName: string,
+): string {
+  const lastDot =
+    fileName.lastIndexOf('.');
+
+  if (lastDot === -1) {
+    return '';
+  }
+
+  return fileName
+    .slice(lastDot)
+    .toLowerCase();
 }
