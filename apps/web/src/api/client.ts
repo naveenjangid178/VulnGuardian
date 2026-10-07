@@ -6,7 +6,6 @@ import axios, {
 
 import {
   clearAuth,
-  getAccessToken,
   getRefreshToken,
   updateAuthTokens,
 } from './auth-storage';
@@ -55,6 +54,16 @@ async function refreshAccessToken(): Promise<string> {
 
   return response.data.accessToken;
 }
+
+apiClient.interceptors.request.use(
+  (config) => {
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
+    return config;
+  },
+);
 
 apiClient.interceptors.response.use(
   (response) => response,

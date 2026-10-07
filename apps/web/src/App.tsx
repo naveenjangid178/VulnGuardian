@@ -5,6 +5,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Projects from "./pages/projects/Projects";
 import ProjectDetails from "./pages/projects/details/components/ProjectDetails";
+import SourceCodePage from "./pages/projects/SourceCodePage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const accessToken = localStorage.getItem("accessToken");
@@ -47,11 +48,22 @@ export default function App() {
         }
       />
 
+      {/* Project Details */}
       <Route
         path="/projects/:projectId"
         element={
           <ProtectedRoute>
             <ProjectDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Project Source Code */}
+      <Route
+        path="/projects/:projectId/source"
+        element={
+          <ProtectedRoute>
+            <SourceCodePage />
           </ProtectedRoute>
         }
       />
