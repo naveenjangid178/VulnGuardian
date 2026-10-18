@@ -5,6 +5,9 @@ from security_engine.models.analysis import AnalysisRequest, AnalysisResponse
 from security_engine.detectors.hardcoded_credentials import (
     detect_hardcoded_credentials,
 )
+from security_engine.detectors.command_injection import (
+    detect_command_injection,
+)
 from security_engine.detectors.sql_injection import detect_sql_injection
 from security_engine.detectors.path_traversal import detect_path_traversal
 
@@ -56,6 +59,13 @@ def analyze(request: AnalysisRequest) -> AnalysisResponse:
             detect_path_traversal(
                 source=source_file.content,
                 file_path=path,
+            )
+        )
+
+        detections.extend(
+            detect_command_injection(
+                source=source_file.content,
+                file_path=source_file.path,
             )
         )
 

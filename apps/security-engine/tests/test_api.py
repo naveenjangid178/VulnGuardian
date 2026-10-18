@@ -3,7 +3,6 @@ from src.security_engine.main import app
 
 from src.security_engine.main import app
 
-
 client = TestClient(app)
 
 
@@ -103,10 +102,6 @@ def test_analyze_detects_sql_injection():
 
 
 def test_analyze_detects_path_traversal():
-    from fastapi.testclient import TestClient
-
-    from security_engine.main import app
-
     client = TestClient(app)
 
     response = client.post(
@@ -134,5 +129,33 @@ def test_analyze_detects_path_traversal():
     assert data["scan_id"] == "test-path-traversal"
     assert any(
         finding["vulnerability_slug"] == "path-traversal"
+        for finding in data["detections"]
+    )
+
+
+def test_analyze_detects_command_injection() -> None:
+    response = client.post(
+        "/analyze",
+        json={
+            "scan_id": "test-command-injection",
+            "files": [
+                {
+                    "path": "app.py",
+                    "language": "python",
+                    "content": (
+                        "import os\n"
+                        "user_input = input('Command: ')\n"
+                        "os.system('echo ' + user_input)\n"
+                    ),
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert any(
+        finding["vulnerability_slug"] == "command-injection"
         for finding in data["detections"]
     )
