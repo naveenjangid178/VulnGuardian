@@ -196,3 +196,39 @@ html = Markup(f"<p>{name}</p>")
     assert len(xss_findings) >= 1
     assert xss_findings[0]["file_path"] == "app.py"
     assert xss_findings[0]["metadata"]["rule_id"] == "PY-XSS-001"
+
+def test_analyze_detects_improper_authentication():
+    response = client.post(
+        "/analyze",
+        json={
+            "scan_id": "test-auth-scan",
+            "files": [
+                {
+                    "path": "auth.py",
+                    "language": "python",
+                    "content": """
+def protected_action():
+    skip_auth()
+    return "sensitive data"
+""",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200, (
+        f"API returned {response.status_code}: {response.text}"
+    )
+
+    body = response.json()
+    detections = body.get("detections", [])
+
+    auth_findings = [
+        finding
+        for finding in detections
+        if finding.get("vulnerability_slug") == "improper-authentication"
+    ]
+
+    assert len(auth_findings) >= 1
+    assert auth_findings[0]["file_path"] == "auth.py"
+    assert auth_findings[0]["metadata"]["rule_id"] == "PY-AUTH-001"
