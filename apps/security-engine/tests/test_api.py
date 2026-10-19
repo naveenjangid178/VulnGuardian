@@ -159,3 +159,40 @@ def test_analyze_detects_command_injection() -> None:
         finding["vulnerability_slug"] == "command-injection"
         for finding in data["detections"]
     )
+
+def test_analyze_detects_xss():
+    response = client.post(
+        "/analyze",
+        json={
+            "scan_id": "test-xss-scan",
+            "files": [
+                {
+                    "path": "app.py",
+                    "language": "python",
+                    "content": """
+from markupsafe import Markup
+
+name = get_user_input()
+html = Markup(f"<p>{name}</p>")
+""",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200, (
+        f"API returned {response.status_code}: {response.text}"
+    )
+
+    body = response.json()
+    detections = body.get("detections", [])
+
+    xss_findings = [
+        finding
+        for finding in detections
+        if finding.get("vulnerability_slug") == "xss"
+    ]
+
+    assert len(xss_findings) >= 1
+    assert xss_findings[0]["file_path"] == "app.py"
+    assert xss_findings[0]["metadata"]["rule_id"] == "PY-XSS-001"
