@@ -8,6 +8,7 @@ from security_engine.detectors.hardcoded_credentials import (
 from security_engine.detectors.command_injection import (
     detect_command_injection,
 )
+from security_engine.detectors.xss import detect_xss
 from security_engine.detectors.sql_injection import detect_sql_injection
 from security_engine.detectors.path_traversal import detect_path_traversal
 
@@ -54,6 +55,7 @@ def analyze(request: AnalysisRequest) -> AnalysisResponse:
             )
         )
 
+
         # Detector 3: Path traversal.
         detections.extend(
             detect_path_traversal(
@@ -69,6 +71,12 @@ def analyze(request: AnalysisRequest) -> AnalysisResponse:
             )
         )
 
+        detections.extend(
+            detect_xss(
+                source=source_file.content,
+                file_path=path,
+            )
+        )
     return AnalysisResponse(
         scan_id=request.scan_id,
         detections=detections,
