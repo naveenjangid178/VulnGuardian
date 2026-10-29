@@ -1,30 +1,13 @@
-<<<<<<< Updated upstream
-import {
-  type ChangeEvent,
-  useEffect,
-  useState,
-} from 'react';
-import {
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
-=======
 import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
->>>>>>> Stashed changes
 
 import {
+  createSnapshot,
   getSnapshots,
   getSnapshotFiles,
   uploadSourceFile,
   type SourceFile,
   type SourceSnapshot,
-<<<<<<< Updated upstream
-} from '../../api/source-code';
-
-export default function SourceCodePage() {
-  const navigate = useNavigate();
-=======
 } from "../../api/source-code";
 
 import { startScan, type StartScanResponse } from "../../api/scans";
@@ -54,39 +37,23 @@ export default function SourceCodePage() {
 
   const accessToken = localStorage.getItem("accessToken");
   const requestedSnapshotId = searchParams.get("snapshotId");
->>>>>>> Stashed changes
 
-  const { projectId } = useParams<{
-    projectId: string;
-  }>();
-
-  const accessToken =
-    localStorage.getItem('accessToken');
-
-  const [snapshots, setSnapshots] = useState<
-    SourceSnapshot[]
-  >([]);
-
+  const [snapshots, setSnapshots] = useState<SourceSnapshot[]>([]);
   const [selectedSnapshot, setSelectedSnapshot] =
     useState<SourceSnapshot | null>(null);
 
-  const [files, setFiles] = useState<SourceFile[]>(
-    [],
-  );
+  const [files, setFiles] = useState<SourceFile[]>([]);
+  const [selectedFile, setSelectedFile] = useState<SourceFile | null>(null);
 
-  const [selectedFile, setSelectedFile] =
-    useState<SourceFile | null>(null);
+  const [loadingSnapshots, setLoadingSnapshots] = useState(true);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [creatingSnapshot, setCreatingSnapshot] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
-  const [loadingSnapshots, setLoadingSnapshots] =
-    useState(true);
-
-  const [loadingFiles, setLoadingFiles] =
-    useState(false);
-
-  const [uploading, setUploading] =
-    useState(false);
-
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [scanMessage, setScanMessage] = useState("");
+  const [scanResult, setScanResult] = useState<StartScanResponse | null>(null);
 
   const loadSnapshots = useCallback(async () => {
     if (!accessToken || !projectId) return;
@@ -134,12 +101,12 @@ export default function SourceCodePage() {
 
   useEffect(() => {
     if (!accessToken) {
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
 
     if (!projectId) {
-      setError('Project ID is missing.');
+      setError("Project ID is missing.");
       setLoadingSnapshots(false);
       return;
     }
@@ -156,87 +123,10 @@ export default function SourceCodePage() {
     }
 
     void loadFiles(selectedSnapshot.id);
-<<<<<<< Updated upstream
-  }, [selectedSnapshot?.id]);
-
-  async function loadSnapshots() {
-    if (!accessToken || !projectId) {
-      return;
-    }
-
-    setLoadingSnapshots(true);
-    setError('');
-
-    try {
-      const data = await getSnapshots(
-        accessToken,
-        projectId,
-      );
-
-      setSnapshots(data);
-
-      if (data.length > 0) {
-        setSelectedSnapshot(data[0]);
-      } else {
-        setSelectedSnapshot(null);
-        setFiles([]);
-        setSelectedFile(null);
-      }
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to load source snapshots.',
-      );
-    } finally {
-      setLoadingSnapshots(false);
-    }
-  }
-
-  async function loadFiles(snapshotId: string) {
-    if (!accessToken || !projectId) {
-      return;
-    }
-
-    setLoadingFiles(true);
-    setError('');
-    setSelectedFile(null);
-
-    try {
-      const data = await getSnapshotFiles(
-        accessToken,
-        projectId,
-        snapshotId,
-      );
-
-      setFiles(data);
-
-      if (data.length > 0) {
-        setSelectedFile(data[0]);
-      }
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to load source files.',
-      );
-
-      setFiles([]);
-    } finally {
-      setLoadingFiles(false);
-    }
-  }
-=======
   }, [selectedSnapshot?.id, loadFiles]);
->>>>>>> Stashed changes
 
-  async function handleFileUpload(
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
+  async function handleCreateSnapshot() {
     if (!accessToken || !projectId) {
-<<<<<<< Updated upstream
-      navigate('/login', { replace: true });
-=======
       navigate("/login", { replace: true });
       return;
     }
@@ -295,30 +185,17 @@ export default function SourceCodePage() {
     if (!accessToken || !projectId) {
       navigate("/login", { replace: true });
       input.value = "";
->>>>>>> Stashed changes
       return;
     }
 
     if (!selectedSnapshot) {
-<<<<<<< Updated upstream
-      setError(
-        'Please select a snapshot before uploading files.',
-      );
-=======
       setError("Please create or select a snapshot before uploading files.");
       input.value = "";
->>>>>>> Stashed changes
       return;
     }
 
     const selectedFiles = input.files;
 
-<<<<<<< Updated upstream
-    if (
-      !selectedFiles ||
-      selectedFiles.length === 0
-    ) {
-=======
     if (!selectedFiles || selectedFiles.length === 0) return;
 
     const allowedExtensions = [".js", ".jsx", ".ts", ".tsx", ".py"];
@@ -339,12 +216,11 @@ export default function SourceCodePage() {
     if (invalidFiles.length > 0) {
       setError(invalidFiles.join(" • "));
       input.value = "";
->>>>>>> Stashed changes
       return;
     }
 
     setUploading(true);
-    setError('');
+    setError("");
 
     try {
       for (const file of filesToUpload) {
@@ -356,30 +232,21 @@ export default function SourceCodePage() {
         );
       }
 
+      setScanResult(null);
+      setScanMessage("");
       await loadFiles(selectedSnapshot.id);
-
-      event.target.value = '';
-    } catch (error) {
+    } catch (err) {
       setError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to upload source files.',
+        err instanceof Error ? err.message : "Unable to upload source files.",
       );
     } finally {
       setUploading(false);
-<<<<<<< Updated upstream
-=======
       input.value = "";
->>>>>>> Stashed changes
     }
   }
 
-  function handleSnapshotSelect(
-    snapshot: SourceSnapshot,
-  ) {
+  function handleSnapshotSelect(snapshot: SourceSnapshot) {
     setSelectedSnapshot(snapshot);
-<<<<<<< Updated upstream
-=======
 
     setSearchParams(
       (current) => {
@@ -393,74 +260,12 @@ export default function SourceCodePage() {
     setScanResult(null);
     setScanMessage("");
     setError("");
->>>>>>> Stashed changes
   }
 
   function handleFileSelect(file: SourceFile) {
     setSelectedFile(file);
   }
 
-<<<<<<< Updated upstream
-  return (
-    <main className="min-h-screen bg-[#070b14] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-
-        {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/projects/${projectId}`)
-              }
-              className="mb-3 text-sm text-white/50 transition hover:text-white"
-            >
-              ← Back to Project
-            </button>
-
-            <h1 className="text-2xl font-bold">
-              Source Code
-            </h1>
-
-            <p className="mt-1 text-sm text-white/50">
-              Manage source snapshots and project files.
-            </p>
-          </div>
-
-          {/* Upload */}
-          <label
-            className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition ${
-              !selectedSnapshot || uploading
-                ? 'cursor-not-allowed bg-white/10 text-white/30'
-                : 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-500'
-            }`}
-          >
-            {uploading
-              ? 'Uploading...'
-              : 'Upload Files'}
-
-            <input
-              type="file"
-              multiple
-              disabled={
-                !selectedSnapshot || uploading
-              }
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </label>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="mb-6 flex items-start justify-between gap-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            <p>{error}</p>
-
-            <button
-              type="button"
-              onClick={() => setError('')}
-              className="shrink-0 text-red-300 transition hover:text-white"
-=======
   async function handleStartScan() {
     if (!accessToken || !projectId || !selectedSnapshot) {
       setError("Please log in and select a project snapshot.");
@@ -658,7 +463,6 @@ export default function SourceCodePage() {
                   ? "border-blue-500 ring-4 ring-blue-500/10"
                   : "border-zinc-200",
               )}
->>>>>>> Stashed changes
             >
               <span
                 aria-hidden="true"
@@ -688,50 +492,6 @@ export default function SourceCodePage() {
                 )}
               </span>
 
-<<<<<<< Updated upstream
-        {/* Main Content */}
-        <div className="grid gap-5 lg:grid-cols-3">
-
-          {/* Snapshots */}
-          <section className="rounded-3xl border border-white/10 bg-white/[0.03]">
-            <div className="border-b border-white/10 px-5 py-4">
-              <h2 className="font-semibold">
-                Snapshots
-              </h2>
-
-              <p className="mt-1 text-xs text-white/40">
-                Select a source snapshot.
-              </p>
-            </div>
-
-            <div className="p-3">
-              {loadingSnapshots ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((item) => (
-                    <div
-                      key={item}
-                      className="h-24 animate-pulse rounded-2xl bg-white/[0.04]"
-                    />
-                  ))}
-                </div>
-              ) : snapshots.length === 0 ? (
-                <div className="px-3 py-10 text-center">
-                  <p className="text-sm text-white/50">
-                    No snapshots found.
-                  </p>
-
-                  <p className="mt-1 text-xs text-white/30">
-                    Create a snapshot to manage source
-                    files.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {snapshots.map((snapshot) => {
-                    const selected =
-                      selectedSnapshot?.id ===
-                      snapshot.id;
-=======
               <div className="min-w-0">
                 <p className="text-sm font-medium leading-5 text-zinc-900">
                   {step.label}
@@ -778,29 +538,11 @@ export default function SourceCodePage() {
               >
                 {snapshots.map((snapshot) => {
                   const selected = selectedSnapshot?.id === snapshot.id;
->>>>>>> Stashed changes
 
                   return (
                     <li key={snapshot.id}>
                       <button
                         type="button"
-<<<<<<< Updated upstream
-                        onClick={() =>
-                          handleSnapshotSelect(
-                            snapshot,
-                          )
-                        }
-                        className={`w-full rounded-2xl border p-4 text-left transition ${
-                          selected
-                            ? 'border-indigo-500/50 bg-indigo-500/10'
-                            : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">
-                            Snapshot v
-                            {snapshot.version}
-=======
                         onClick={() => handleSnapshotSelect(snapshot)}
                         aria-pressed={selected}
                         className={cn(
@@ -813,7 +555,6 @@ export default function SourceCodePage() {
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-zinc-900">
                             Snapshot v{snapshot.version}
->>>>>>> Stashed changes
                           </span>
 
                           {selected && (
@@ -823,50 +564,6 @@ export default function SourceCodePage() {
                           )}
                         </div>
 
-<<<<<<< Updated upstream
-                        <div className="mt-3 space-y-1 text-xs text-white/40">
-                          <p>
-                            Type:{' '}
-                            <span className="text-white/60">
-                              {snapshot.sourceType}
-                            </span>
-                          </p>
-
-                          <p>
-                            Created:{' '}
-                            <span className="text-white/60">
-                              {formatDate(
-                                snapshot.createdAt,
-                              )}
-                            </span>
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Source Files */}
-          <section className="rounded-3xl border border-white/10 bg-white/[0.03]">
-            <div className="border-b border-white/10 px-5 py-4">
-              <h2 className="font-semibold">
-                Source Files
-              </h2>
-
-              <p className="mt-1 text-xs text-white/40">
-                Files in the selected snapshot.
-              </p>
-            </div>
-
-            <div className="p-3">
-              {!selectedSnapshot ? (
-                <div className="px-3 py-10 text-center text-sm text-white/40">
-                  Select a snapshot first.
-                </div>
-=======
                         <dl className="mt-2.5 space-y-1 text-[13px] leading-5">
                           <div className="flex gap-1.5">
                             <dt className="text-zinc-500">Type</dt>
@@ -913,34 +610,14 @@ export default function SourceCodePage() {
                   icon="file"
                   title="Select or create a snapshot first."
                 />
->>>>>>> Stashed changes
               ) : loadingFiles ? (
-                <div className="space-y-2">
-                  {[1, 2, 3, 4].map((item) => (
-                    <div
-                      key={item}
-                      className="h-14 animate-pulse rounded-xl bg-white/[0.04]"
-                    />
-                  ))}
-                </div>
+                <LoadingItems count={4} />
               ) : files.length === 0 ? (
-<<<<<<< Updated upstream
-                <div className="px-3 py-10 text-center">
-                  <p className="text-sm text-white/50">
-                    No source files found.
-                  </p>
-
-                  <p className="mt-1 text-xs text-white/30">
-                    Upload files to this snapshot.
-                  </p>
-                </div>
-=======
                 <EmptyMessage
                   icon="arrowUp"
                   title="No source files found."
                   description="Upload .js, .jsx, .ts, .tsx or .py files, up to 5 MB each."
                 />
->>>>>>> Stashed changes
               ) : (
                 <ul
                   className={cn(
@@ -949,28 +626,6 @@ export default function SourceCodePage() {
                   )}
                 >
                   {files.map((file) => {
-<<<<<<< Updated upstream
-                    const selected =
-                      selectedFile?.id === file.id;
-
-                    return (
-                      <button
-                        key={file.id}
-                        type="button"
-                        onClick={() =>
-                          handleFileSelect(file)
-                        }
-                        className={`w-full rounded-xl px-3 py-3 text-left transition ${
-                          selected
-                            ? 'bg-indigo-500/10 text-indigo-300'
-                            : 'text-white/70 hover:bg-white/[0.04] hover:text-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-base">
-                            📄
-                          </span>
-=======
                     const selected = selectedFile?.id === file.id;
                     const { dir, base } = splitPath(file.path);
 
@@ -994,7 +649,6 @@ export default function SourceCodePage() {
                           )}
 
                           <FileTile path={file.path} />
->>>>>>> Stashed changes
 
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-mono text-[13px] leading-5">
@@ -1004,16 +658,8 @@ export default function SourceCodePage() {
                               </span>
                             </p>
 
-<<<<<<< Updated upstream
-                            <p className="mt-1 text-xs text-white/30">
-                              {file.language} ·{' '}
-                              {formatFileSize(
-                                file.size,
-                              )}
-=======
                             <p className="mt-0.5 text-xs text-zinc-600">
                               {file.language} · {formatFileSize(file.size)}
->>>>>>> Stashed changes
                             </p>
                           </div>
                         </button>
@@ -1025,70 +671,6 @@ export default function SourceCodePage() {
             </div>
           </section>
 
-<<<<<<< Updated upstream
-          {/* File Details */}
-          <section className="rounded-3xl border border-white/10 bg-white/[0.03]">
-            <div className="border-b border-white/10 px-5 py-4">
-              <h2 className="font-semibold">
-                File Details
-              </h2>
-
-              <p className="mt-1 text-xs text-white/40">
-                Information about the selected file.
-              </p>
-            </div>
-
-            <div className="p-5">
-              {!selectedFile ? (
-                <div className="py-12 text-center">
-                  <div className="text-3xl opacity-50">
-                    📄
-                  </div>
-
-                  <p className="mt-3 text-sm text-white/40">
-                    Select a file to view its details.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-5">
-
-                  <Detail
-                    label="File"
-                    value={selectedFile.path}
-                  />
-
-                  <Detail
-                    label="Language"
-                    value={selectedFile.language}
-                  />
-
-                  <Detail
-                    label="Size"
-                    value={formatFileSize(
-                      selectedFile.size,
-                    )}
-                  />
-
-                  <Detail
-                    label="Content Hash"
-                    value={selectedFile.contentHash}
-                    mono
-                  />
-
-                  <Detail
-                    label="Created"
-                    value={formatDate(
-                      selectedFile.createdAt,
-                    )}
-                  />
-
-                  <Detail
-                    label="Storage Key"
-                    value={selectedFile.storageKey}
-                    mono
-                  />
-
-=======
           {/* File details */}
           <section
             aria-labelledby="details-heading"
@@ -1142,20 +724,12 @@ export default function SourceCodePage() {
                       mono
                     />
                   </dl>
->>>>>>> Stashed changes
                 </div>
               )}
             </div>
           </section>
         </div>
       </div>
-<<<<<<< Updated upstream
-    </main>
-  );
-}
-
-interface DetailProps {
-=======
     </div>
   );
 }
@@ -1262,29 +836,11 @@ function FileTile({ path }: { path: string }) {
 }
 
 interface DetailRowProps {
->>>>>>> Stashed changes
   label: string;
   value: string;
   mono?: boolean;
 }
 
-<<<<<<< Updated upstream
-function Detail({
-  label,
-  value,
-  mono = false,
-}: DetailProps) {
-  return (
-    <div>
-      <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">
-        {label}
-      </p>
-
-      <p
-        className={`mt-1 break-all text-sm text-white/70 ${
-          mono ? 'font-mono text-xs' : ''
-        }`}
-=======
 function DetailRow({ label, value, mono = false }: DetailRowProps) {
   return (
     <div className="py-3">
@@ -1295,7 +851,6 @@ function DetailRow({ label, value, mono = false }: DetailRowProps) {
           "mt-0.5 break-all text-sm leading-5 text-zinc-900",
           mono && "font-mono text-[13px] text-zinc-800",
         )}
->>>>>>> Stashed changes
       >
         {value || "—"}
       </dd>
@@ -1319,38 +874,24 @@ function sentenceCase(value: string): string {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) {
-    return '0 Bytes';
-  }
+  if (bytes === 0) return "0 Bytes";
 
-  const units = [
-    'Bytes',
-    'KB',
-    'MB',
-    'GB',
-  ];
-
-  const index = Math.floor(
-    Math.log(bytes) / Math.log(1024),
+  const units = ["Bytes", "KB", "MB", "GB"];
+  const index = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
   );
 
-  const size =
-    bytes / Math.pow(1024, index);
-
-  return `${size.toFixed(index === 0 ? 0 : 2)} ${
-    units[index]
-  }`;
+  const size = bytes / Math.pow(1024, index);
+  return `${size.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
 }
 
 function formatDate(date: string): string {
   return new Date(date).toLocaleString();
-<<<<<<< Updated upstream
-=======
 }
 
 function getFileExtension(fileName: string): string {
   const lastDot = fileName.lastIndexOf(".");
   if (lastDot === -1) return "";
   return fileName.slice(lastDot).toLowerCase();
->>>>>>> Stashed changes
 }
