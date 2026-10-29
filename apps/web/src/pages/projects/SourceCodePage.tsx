@@ -17,16 +17,6 @@ import Button, { Spinner, buttonStyles } from "../../components/ui/Button";
 import Icon, { type IconName } from "../../components/ui/Icon";
 import { cn, scrollArea } from "../../components/ui/cn";
 
-/*
-  Source code page standards
-  - Sits inside the workspace's centered column: no page background,
-    no outer padding. The layout widens the column on this route.
-  - Text scale: zinc-900 for content, zinc-600 for descriptions,
-    zinc-500 as the lightest allowed text. Nothing smaller than 12px.
-  - Cards: white, hairline border, 16px radius. Selected = blue border + soft fill.
-  - One primary action (Start security scan); everything else is secondary.
-*/
-
 const card =
   "rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]";
 
@@ -894,4 +884,4 @@ function getFileExtension(fileName: string): string {
   const lastDot = fileName.lastIndexOf(".");
   if (lastDot === -1) return "";
   return fileName.slice(lastDot).toLowerCase();
-}
+} 
