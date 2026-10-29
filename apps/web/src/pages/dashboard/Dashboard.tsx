@@ -1,367 +1,244 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import type { User } from '../../api/auth';
-import {
-  clearAuth,
-  getStoredUser,
-} from '../../api/auth-storage';
+import type { User } from "../../api/auth";
+import { clearAuth, getStoredUser } from "../../api/auth-storage";
+import Button, { Spinner } from "../../components/ui/Button";
+import Icon, { type IconName } from "../../components/ui/Icon";
+import { cn } from "../../components/ui/cn";
+
+/*
+  Dashboard standards
+  - Sits inside the workspace's centered column: no page background,
+    no outer padding, no page-level max-width beyond the 768px content.
+  - Vertically centered like a chat home screen.
+  - Cards: white, hairline border, 12px radius. Selected = blue border + soft ring.
+  - Composer: 16px radius, focus ring on the container, Ctrl/⌘ + Enter submits.
+*/
+
+type WorkspaceAction = "scan" | "review" | "learn";
+
+const actionLabels: Record<WorkspaceAction, string> = {
+  scan: "Scan source code",
+  review: "Review a vulnerability",
+  learn: "Learn secure coding",
+};
+
+const actions: {
+  id: WorkspaceAction;
+  title: string;
+  description: string;
+  icon: IconName;
+}[] = [
+  {
+    id: "scan",
+    title: "Scan code",
+    description: "Find potential security issues",
+    icon: "search",
+  },
+  {
+    id: "review",
+    title: "Review findings",
+    description: "Understand security risks",
+    icon: "alert",
+  },
+  {
+    id: "learn",
+    title: "Learn security",
+    description: "Explore secure coding",
+    icon: "book",
+  },
+];
+
+function getFirstName(email: string) {
+  const local = email.split("@")[0] ?? "";
+  const first = local.split(/[._-]/)[0] ?? "";
+
+  if (!first) return "Developer";
+
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const [user, setUser] =
-    useState<User | null>(null);
-
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [prompt, setPrompt] = useState("");
+  const [activeAction, setActiveAction] =
+    useState<WorkspaceAction>("scan");
 
   useEffect(() => {
-    const accessToken =
-      localStorage.getItem('accessToken');
-
+    const accessToken = localStorage.getItem("accessToken");
     const storedUser = getStoredUser();
 
-    /*
-     * If authentication information exists,
-     * the user is already logged in.
-     */
     if (accessToken && storedUser) {
       setUser(storedUser);
       setLoading(false);
       return;
     }
 
-    /*
-     * Authentication information is missing.
-     * Send the user to login.
-     */
     clearAuth();
-
-    navigate('/login', {
-      replace: true,
-    });
+    navigate("/login", { replace: true });
   }, [navigate]);
 
-  function handleLogout() {
-    clearAuth();
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-    navigate('/login', {
-      replace: true,
-    });
+    // The conversation API is not connected yet.
+    // Navigate to projects instead of fabricating an AI response.
+    navigate("/projects");
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#030712] text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-blue-500" />
-
-          <p className="text-sm text-slate-500">
-            Loading your workspace...
-          </p>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div
+          role="status"
+          className="flex items-center gap-2.5 text-sm text-zinc-500"
+        >
+          <Spinner />
+          Loading your workspace…
         </div>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  const username =
-    user.email.split('@')[0] || 'Developer';
+  const firstName = getFirstName(user.email);
 
   return (
-    <main className="min-h-screen bg-[#030712] text-white">
-      {/* Background effects */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[140px]" />
+    <div className="mx-auto flex min-h-[calc(100dvh-7.5rem)] w-full max-w-3xl flex-col justify-center">
+      {/* Greeting */}
+      <div className="text-center">
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-blue-600 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-8px_rgba(0,0,0,0.12)]"
+        >
+          <Icon name="shield" className="h-6 w-6" />
+        </div>
 
-        <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-violet-600/10 blur-[140px]" />
+        <p className="text-sm text-zinc-500">
+          Welcome back, {firstName}
+        </p>
+
+        <h1 className="mt-1.5 text-3xl font-semibold tracking-[-0.03em] text-zinc-900 sm:text-[2rem] sm:leading-10">
+          What are we securing today?
+        </h1>
+
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-zinc-500">
+          Analyze source code, investigate vulnerabilities, and build
+          safer software.
+        </p>
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        {/* Navbar */}
-        <header className="mb-6 flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-sm font-bold shadow-lg shadow-blue-500/20">
-              VG
-            </div>
+      {/* Quick actions */}
+      <div
+        role="group"
+        aria-label="Quick actions"
+        className="mt-9 grid grid-cols-1 gap-3 sm:grid-cols-3"
+      >
+        {actions.map((action) => {
+          const isActive = activeAction === action.id;
 
-            <div>
-              <p className="font-semibold tracking-tight">
-                VulnGuardian
-              </p>
-
-              <p className="text-xs text-slate-500">
-                Developer Security Platform
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium text-slate-200">
-                {user.email}
-              </p>
-
-              <p className="text-xs capitalize text-slate-500">
-                {user.role.toLowerCase()}
-              </p>
-            </div>
-
+          return (
             <button
+              key={action.id}
               type="button"
-              onClick={handleLogout}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+              aria-pressed={isActive}
+              onClick={() => {
+                setActiveAction(action.id);
+
+                if (action.id === "scan") {
+                  navigate("/projects");
+                } else {
+                  setPrompt(
+                    action.id === "review"
+                      ? "Help me review a security finding"
+                      : "Help me learn secure coding practices",
+                  );
+                }
+              }}
+              className={cn(
+                "group flex items-start gap-3 rounded-xl border bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition duration-150 focus-visible:outline-none focus-visible:ring-4 sm:flex-col sm:gap-0",
+                isActive
+                  ? "border-blue-500 ring-4 ring-blue-500/10 focus-visible:ring-blue-500/20"
+                  : "border-zinc-200 hover:border-zinc-300 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] focus-visible:border-zinc-400 focus-visible:ring-zinc-900/5",
+              )}
             >
-              Logout
-            </button>
-          </div>
-        </header>
+              <span
+                className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition duration-150",
+                  isActive
+                    ? "bg-blue-50 text-blue-600"
+                    : "bg-zinc-100 text-zinc-600 group-hover:text-zinc-900",
+                )}
+              >
+                <Icon name={action.icon} className="h-[18px] w-[18px]" />
+              </span>
 
-        {/* Bento grid */}
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {/* Welcome card */}
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/[0.04] to-white/[0.02] p-7 md:col-span-2 xl:col-span-3">
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
-
-            <div className="relative">
-              <div className="mb-6 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50" />
-
-                <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                  System ready
+              <span className="min-w-0 sm:mt-3.5">
+                <span className="block text-sm font-medium text-zinc-900">
+                  {action.title}
                 </span>
-              </div>
 
-              <p className="text-sm text-slate-400">
-                Welcome back,
-              </p>
-
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-                {username}
-                <span className="text-blue-400">
-                  .
+                <span className="mt-0.5 block text-xs leading-5 text-zinc-500">
+                  {action.description}
                 </span>
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-400">
-                Analyze your source code for security
-                vulnerabilities and understand how to
-                write safer software.
-              </p>
-
-              <div className="mt-7 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate('/projects')
-                  }
-                  className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-400"
-                >
-                  View projects
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate('/projects')
-                  }
-                  className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
-                >
-                  Start a scan
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Security status */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-            <div className="mb-8 flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Security
               </span>
-
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                ✓
-              </div>
-            </div>
-
-            <p className="text-2xl font-semibold">
-              Ready
-            </p>
-
-            <p className="mt-2 text-sm leading-5 text-slate-500">
-              Your security analysis workspace is
-              ready.
-            </p>
-          </div>
-
-          {/* Projects */}
-          <div className="group rounded-3xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-blue-500/30 hover:bg-blue-500/[0.04]">
-            <div className="mb-7 flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Projects
-              </span>
-
-              <span className="text-xl text-slate-500 transition group-hover:text-blue-400">
-                →
-              </span>
-            </div>
-
-            <p className="text-2xl font-semibold">
-              Your projects
-            </p>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate('/projects')
-              }
-              className="mt-5 text-sm font-medium text-blue-400 transition hover:text-blue-300"
-            >
-              Manage projects →
             </button>
-          </div>
-
-          {/* Scans */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Scans
-            </p>
-
-            <p className="mt-5 text-3xl font-semibold">
-              0
-            </p>
-
-            <p className="mt-2 text-sm text-slate-500">
-              No scans yet
-            </p>
-          </div>
-
-          {/* Findings */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Findings
-            </p>
-
-            <p className="mt-5 text-3xl font-semibold">
-              0
-            </p>
-
-            <p className="mt-2 text-sm text-slate-500">
-              No findings yet
-            </p>
-          </div>
-
-          {/* Vulnerabilities */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Vulnerabilities
-            </p>
-
-            <p className="mt-5 text-3xl font-semibold">
-              0
-            </p>
-
-            <p className="mt-2 text-sm text-slate-500">
-              No vulnerabilities yet
-            </p>
-          </div>
-
-          {/* Detection pipeline */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 md:col-span-2 xl:col-span-4">
-            <div className="mb-6 flex items-end justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Detection pipeline
-                </p>
-
-                <h2 className="mt-2 text-xl font-semibold">
-                  Security analysis
-                </h2>
-              </div>
-
-              <span className="hidden text-xs text-slate-600 sm:block">
-                VulnGuardian architecture
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {/* Static analysis */}
-              <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.04] p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                    01
-                  </div>
-
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-400">
-                    Ready
-                  </span>
-                </div>
-
-                <h3 className="mt-5 font-medium">
-                  Static / AST analysis
-                </h3>
-
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Source-code analysis and vulnerability
-                  detection.
-                </p>
-              </div>
-
-              {/* Machine learning */}
-              <div className="rounded-2xl border border-blue-500/10 bg-blue-500/[0.04] p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                    02
-                  </div>
-
-                  <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-blue-400">
-                    Building
-                  </span>
-                </div>
-
-                <h3 className="mt-5 font-medium">
-                  Machine learning
-                </h3>
-
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  ML provides an additional detection
-                  signal for vulnerabilities.
-                </p>
-              </div>
-
-              {/* AI mentor */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-slate-400">
-                    03
-                  </div>
-
-                  <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                    Later
-                  </span>
-                </div>
-
-                <h3 className="mt-5 font-medium">
-                  AI Security Mentor
-                </h3>
-
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Explains findings and teaches secure
-                  remediation.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <footer className="py-8 text-center text-xs text-slate-700">
-          VulnGuardian · Developer Security Platform
-        </footer>
+          );
+        })}
       </div>
-    </main>
+
+      {/* Composer */}
+      <form
+        onSubmit={handleSubmit}
+        className="mt-5 rounded-2xl border border-zinc-200 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.1)] transition duration-150 focus-within:border-zinc-400 focus-within:ring-4 focus-within:ring-zinc-900/5"
+      >
+        <label htmlFor="security-prompt" className="sr-only">
+          Describe your security task
+        </label>
+
+        <textarea
+          id="security-prompt"
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter" &&
+              (event.metaKey || event.ctrlKey)
+            ) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
+          placeholder={`Describe your task: ${actionLabels[activeAction].toLowerCase()}…`}
+          rows={3}
+          className="block w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-6 text-zinc-900 outline-none placeholder:text-zinc-400"
+        />
+
+        <div className="mt-2 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
+          <p className="min-w-0 text-xs leading-4 text-zinc-500">
+            Select a project to begin a real scan.
+          </p>
+
+          <Button
+            type="submit"
+            title="Continue (Ctrl/⌘ + Enter)"
+            className="shrink-0"
+          >
+            Continue
+            <Icon name="arrowUp" />
+          </Button>
+        </div>
+      </form>
+
+      <p className="mt-4 text-center text-xs leading-5 text-zinc-400">
+        Security findings come from the analysis pipeline. AI
+        explanations will be connected separately.
+      </p>
+    </div>
   );
 }

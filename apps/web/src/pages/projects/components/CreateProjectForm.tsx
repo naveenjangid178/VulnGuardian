@@ -1,118 +1,104 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-interface CreateProjectFormProps {
-  loading: boolean;
-  onSubmit: (
-    name: string,
-    description: string,
-  ) => Promise<void>;
-  onClose: () => void;
-}
+import Button from "../../../components/ui/Button";
+import TextField from "../../../components/ui/TextField";
 
 export default function CreateProjectForm({
   loading,
   onSubmit,
   onClose,
-}: CreateProjectFormProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+}: {
+  loading: boolean;
+  onSubmit: (name: string, description: string) => void | Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [nameError, setNameError] = useState("");
 
-  async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (loading) return;
 
     const trimmedName = name.trim();
 
     if (!trimmedName) {
+      setNameError("Enter a project name.");
+      document.getElementById("project-name")?.focus();
       return;
     }
 
-    await onSubmit(
-      trimmedName,
-      description.trim(),
-    );
+    void onSubmit(trimmedName, description.trim());
   }
 
   return (
-    <section className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">
-            Create a project
-          </h2>
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] sm:p-6"
+    >
+      <div className="mb-5">
+        <h2 className="text-base font-semibold text-zinc-900">
+          Create a project
+        </h2>
 
-          <p className="mt-1 text-sm text-slate-400">
-            Add a codebase to your VulnGuardian workspace.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl px-2 py-1 text-xl text-slate-500 transition hover:bg-white/5 hover:text-white"
-        >
-          ×
-        </button>
+        <p className="mt-0.5 text-sm text-zinc-500">
+          Projects keep your source code, snapshots and scans together.
+        </p>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid gap-5 lg:grid-cols-[1fr_1fr_auto]"
-      >
-        <div>
-          <label
-            htmlFor="projectName"
-            className="mb-2 block text-sm font-medium text-slate-300"
-          >
-            Project name
-          </label>
-
-          <input
-            id="projectName"
-            type="text"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="My secure application"
-            maxLength={100}
-            disabled={loading}
-            autoFocus
-            className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
-          />
-        </div>
+      <div className="space-y-4">
+        <TextField
+          id="project-name"
+          label="Project name"
+          name="name"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            if (nameError) setNameError("");
+          }}
+          placeholder="e.g. Payments API"
+          autoComplete="off"
+          autoFocus
+          required
+          disabled={loading}
+          error={nameError}
+        />
 
         <div>
           <label
-            htmlFor="projectDescription"
-            className="mb-2 block text-sm font-medium text-slate-300"
+            htmlFor="project-description"
+            className="mb-1.5 flex items-baseline justify-between text-[13px] font-medium text-zinc-700"
           >
             Description
+            <span className="text-xs font-normal text-zinc-400">
+              Optional
+            </span>
           </label>
 
-          <input
-            id="projectDescription"
-            type="text"
+          <textarea
+            id="project-description"
+            name="description"
             value={description}
-            onChange={(event) =>
-              setDescription(event.target.value)
-            }
-            placeholder="What are you building?"
-            maxLength={500}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="What does this project do?"
+            rows={3}
             disabled={loading}
-            className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
+            className="block w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.04)] outline-none transition duration-150 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500"
           />
         </div>
+      </div>
 
-        <div className="flex items-end">
-          <button
-            type="submit"
-            disabled={loading || !name.trim()}
-            className="w-full rounded-2xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
-          >
-            {loading ? 'Creating...' : 'Create project'}
-          </button>
-        </div>
-      </form>
-    </section>
+      <div className="mt-6 flex justify-end gap-2">
+        <Button variant="ghost" onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+
+        <Button type="submit" loading={loading}>
+          {loading ? "Creating…" : "Create project"}
+        </Button>
+      </div>
+    </form>
   );
 }

@@ -1,4 +1,7 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+
+import WorkspaceLayout from "./layouts/WorkspaceLayout";
 
 import Dashboard from "./pages/dashboard/Dashboard";
 import Login from "./pages/auth/Login";
@@ -7,68 +10,46 @@ import Projects from "./pages/projects/Projects";
 import ProjectDetails from "./pages/projects/details/components/ProjectDetails";
 import SourceCodePage from "./pages/projects/SourceCodePage";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute() {
   const accessToken = localStorage.getItem("accessToken");
 
   if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  return <Outlet />;
 }
 
 export default function App() {
   return (
     <Routes>
-      {/* Default route */}
+      {/* Redirect the root URL */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      {/* Authentication */}
+      {/* Public authentication routes */}
       <Route path="/login" element={<Login />} />
-
       <Route path="/register" element={<Register />} />
 
-      {/* Dashboard */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      {/* Protected application routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<WorkspaceLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
 
-      {/* Projects */}
-      <Route
-        path="/projects"
-        element={
-          <ProtectedRoute>
-            <Projects />
-          </ProtectedRoute>
-        }
-      />
+          <Route path="/projects" element={<Projects />} />
 
-      {/* Project Details */}
-      <Route
-        path="/projects/:projectId"
-        element={
-          <ProtectedRoute>
-            <ProjectDetails />
-          </ProtectedRoute>
-        }
-      />
+          <Route
+            path="/projects/:projectId"
+            element={<ProjectDetails />}
+          />
 
-      {/* Project Source Code */}
-      <Route
-        path="/projects/:projectId/source"
-        element={
-          <ProtectedRoute>
-            <SourceCodePage />
-          </ProtectedRoute>
-        }
-      />
+          <Route
+            path="/projects/:projectId/source"
+            element={<SourceCodePage />}
+          />
+        </Route>
+      </Route>
 
-      {/* Unknown routes */}
+      {/* Redirect unknown routes */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

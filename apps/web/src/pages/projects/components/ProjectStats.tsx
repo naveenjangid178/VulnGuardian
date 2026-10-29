@@ -1,59 +1,118 @@
-interface ProjectStatsProps {
-  projectCount: number;
-  loading: boolean;
+import type { ReactNode } from "react";
+
+import Icon, { type IconName } from "../../../components/ui/Icon";
+import { cn } from "../../../components/ui/cn";
+
+/*
+  Stat card standards
+  - White, hairline border, 12px radius, 16px padding.
+  - Label 12px zinc-500 + icon tile on the right; value large; caption 12px.
+*/
+
+const card =
+  "rounded-xl border border-zinc-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]";
+
+function StatCard({
+  label,
+  icon,
+  children,
+  caption,
+}: {
+  label: string;
+  icon: IconName;
+  children: ReactNode;
+  caption: string;
+}) {
+  return (
+    <div className={card}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-zinc-500">{label}</p>
+
+        <span
+          aria-hidden="true"
+          className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600"
+        >
+          <Icon name={icon} className="h-3.5 w-3.5" />
+        </span>
+      </div>
+
+      <div className="mt-3 flex min-h-9 items-center">{children}</div>
+
+      <p className="mt-1 text-xs leading-5 text-zinc-500">{caption}</p>
+    </div>
+  );
 }
+
+const workflow = ["Code", "Analysis", "Findings"];
 
 export default function ProjectStats({
   projectCount,
   loading,
-}: ProjectStatsProps) {
+}: {
+  projectCount: number;
+  loading: boolean;
+}) {
   return (
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-          Total projects
-        </p>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <StatCard
+        label="Total projects"
+        icon="folder"
+        caption="Projects you can access"
+      >
+        {loading ? (
+          <div className="h-7 w-10 animate-pulse rounded-md bg-zinc-100 motion-reduce:animate-none" />
+        ) : (
+          <p className="text-3xl font-semibold leading-9 tracking-tight tabular-nums text-zinc-900">
+            {projectCount}
+          </p>
+        )}
+      </StatCard>
 
-        <p className="mt-3 text-3xl font-semibold text-white">
-          {loading ? '—' : projectCount}
-        </p>
+      <StatCard
+        label="Workspace status"
+        icon="shield"
+        caption={loading ? "Contacting the backend…" : "Backend API is available."}
+      >
+        <p className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+          <span className="relative flex h-2.5 w-2.5">
+            {!loading && (
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60 motion-reduce:hidden" />
+            )}
 
-        <p className="mt-1 text-sm text-slate-500">
-          Projects you can access
-        </p>
-      </div>
-
-      <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-          Workspace status
-        </p>
-
-        <div className="mt-4 flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
-
-          <span className="text-sm font-medium text-emerald-300">
-            Connected
+            <span
+              className={cn(
+                "relative inline-flex h-2.5 w-2.5 rounded-full",
+                loading ? "bg-amber-400" : "bg-emerald-500",
+              )}
+            />
           </span>
-        </div>
 
-        <p className="mt-2 text-sm text-slate-500">
-          Backend API is available.
+          {loading ? "Checking…" : "Connected"}
         </p>
-      </div>
+      </StatCard>
 
-      <div className="hidden rounded-3xl border border-white/10 bg-white/[0.04] p-5 lg:block">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-          Security workflow
-        </p>
+      <StatCard
+        label="Security workflow"
+        icon="code"
+        caption="Security scanning will connect here."
+      >
+        <ol className="flex flex-wrap items-center gap-1.5">
+          {workflow.map((step, index) => (
+            <li key={step} className="flex items-center gap-1.5">
+              {index > 0 && (
+                <Icon
+                  name="arrowRight"
+                  className="h-3 w-3 text-zinc-300"
+                />
+              )}
 
-        <p className="mt-3 text-sm font-medium text-slate-300">
-          Code → Analysis → Findings
-        </p>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Security scanning will connect here.
-        </p>
-      </div>
-    </section>
+              <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700">
+                {step}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </StatCard>
+    </div>
   );
 }

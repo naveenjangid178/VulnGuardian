@@ -1,100 +1,151 @@
-import type { SourceSnapshot } from '../../../../api/source-code';
+import type { SourceSnapshot } from "../../../../api/source-code";
+import Icon from "../../../../components/ui/Icon";
+import { cn, scrollArea } from "../../../../components/ui/cn";
+import {
+  formatDate,
+  pick,
+  textOf,
+  type Loose,
+} from "./project-visuals";
 
-interface SourceSnapshotsProps {
-  snapshots: SourceSnapshot[];
-  selectedSnapshotId: string | null;
-  loading: boolean;
-  onSelect: (snapshotId: string) => void;
-}
+/*
+  Snapshots card: a selectable list. The selected snapshot gets a blue
+  indicator bar and a soft fill; everything is a real button for keyboard use.
+*/
 
 export default function SourceSnapshots({
   snapshots,
   selectedSnapshotId,
   loading,
   onSelect,
-}: SourceSnapshotsProps) {
+}: {
+  snapshots: SourceSnapshot[];
+  selectedSnapshotId: string | null;
+  loading: boolean;
+  onSelect: (snapshotId: string) => void;
+}) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-            Source history
-          </p>
-
-          <h2 className="mt-2 text-xl font-semibold text-white">
-            Snapshots
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Versions of your project's source code.
-          </p>
-        </div>
+    <section
+      aria-labelledby="snapshots-heading"
+      className="flex flex-col rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4">
+        <h2
+          id="snapshots-heading"
+          className="text-sm font-semibold text-zinc-900"
+        >
+          Snapshots
+        </h2>
 
         {!loading && (
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
+          <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-zinc-600">
             {snapshots.length}
           </span>
         )}
       </div>
 
       {loading ? (
-        <div className="mt-6 space-y-3">
+        <div className="space-y-2 p-3" aria-label="Loading snapshots">
           {[1, 2, 3].map((item) => (
             <div
               key={item}
-              className="h-16 animate-pulse rounded-2xl bg-white/[0.03]"
+              className="h-14 animate-pulse rounded-xl bg-zinc-100 motion-reduce:animate-none"
             />
           ))}
         </div>
       ) : snapshots.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-white/10 bg-black/20 p-8 text-center">
-          <p className="text-sm font-medium text-slate-400">
-            No source snapshots yet
+        <div className="px-5 py-10 text-center">
+          <div
+            aria-hidden="true"
+            className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500"
+          >
+            <Icon name="file" className="h-5 w-5" />
+          </div>
+
+          <p className="mt-3 text-sm font-medium text-zinc-900">
+            No snapshots yet
           </p>
 
-          <p className="mt-1 text-xs text-slate-600">
-            Upload source code to create the first snapshot.
+          <p className="mx-auto mt-1 max-w-[16rem] text-xs leading-5 text-zinc-500">
+            Upload source code from “Manage source code” to create the first
+            version.
           </p>
         </div>
       ) : (
-        <div className="mt-6 space-y-3">
+        <ul
+          className={cn("max-h-[26rem] space-y-1 overflow-y-auto p-2", scrollArea)}
+        >
           {snapshots.map((snapshot) => {
-            const selected =
-              snapshot.id === selectedSnapshotId;
+            const isSelected = snapshot.id === selectedSnapshotId;
+            const data = snapshot as unknown as Loose;
+            const created = formatDate(
+              pick(data, ["createdAt", "created_at"]),
+            );
+            const note = textOf(
+              pick(data, ["description", "message", "note", "label"]),
+            );
 
             return (
-              <button
-                key={snapshot.id}
-                type="button"
-                onClick={() =>
-                  onSelect(snapshot.id)
-                }
-                className={
-                  selected
-                    ? 'flex w-full items-center justify-between rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-left'
-                    : 'flex w-full items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-4 text-left transition hover:border-white/20 hover:bg-white/[0.04]'
-                }
-              >
-                <div>
-                  <p className="text-sm font-medium text-white">
-                    Version {snapshot.version}
-                  </p>
+              <li key={snapshot.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(snapshot.id)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                    isSelected
+                      ? "bg-blue-50/70"
+                      : "hover:bg-zinc-50",
+                  )}
+                >
+                  {isSelected && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-blue-600"
+                    />
+                  )}
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    {snapshot.sourceType}
-                  </p>
-                </div>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                      isSelected
+                        ? "bg-blue-600 text-white"
+                        : "bg-zinc-100 text-zinc-500",
+                    )}
+                  >
+                    <Icon name="file" className="h-4 w-4" />
+                  </span>
 
-                <span className="text-xs text-slate-500">
-                  {snapshot.files.length}{' '}
-                  {snapshot.files.length === 1
-                    ? 'file'
-                    : 'files'}
-                </span>
-              </button>
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "block truncate text-sm",
+                        isSelected
+                          ? "font-semibold text-zinc-900"
+                          : "font-medium text-zinc-800",
+                      )}
+                    >
+                      Version {snapshot.version}
+                    </span>
+
+                    <span className="block truncate text-xs text-zinc-500">
+                      {note || created || (
+                        <span className="font-mono">{snapshot.id}</span>
+                      )}
+                    </span>
+                  </span>
+
+                  {created && note && (
+                    <span className="hidden shrink-0 text-xs text-zinc-400 sm:block">
+                      {created}
+                    </span>
+                  )}
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </section>
   );

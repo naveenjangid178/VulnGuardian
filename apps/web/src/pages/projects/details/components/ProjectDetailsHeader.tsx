@@ -1,10 +1,16 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+
+import Button from "../../../../components/ui/Button";
+import Icon from "../../../../components/ui/Icon";
+import { cn } from "../../../../components/ui/cn";
+import { getInitials, paletteFor } from "./project-visuals";
 
 interface ProjectDetailsHeaderProps {
   projectName: string;
   isOwner: boolean;
   onDelete: () => void;
   deleting: boolean;
+  projectId: string;
 }
 
 export default function ProjectDetailsHeader({
@@ -12,46 +18,56 @@ export default function ProjectDetailsHeader({
   isOwner,
   onDelete,
   deleting,
+  projectId,
 }: ProjectDetailsHeaderProps) {
   const navigate = useNavigate();
+  const palette = paletteFor(projectName);
 
   return (
-    <header className="mb-8">
-      <button
-        type="button"
-        onClick={() => navigate('/projects')}
-        className="mb-5 text-sm text-slate-500 transition hover:text-white"
-      >
-        ← Back to projects
-      </button>
+    <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-4">
+        <div
+          aria-hidden="true"
+          className={cn(
+            "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_6px_14px_-4px_rgba(0,0,0,0.25)]",
+            palette.tile,
+          )}
+        >
+          {getInitials(projectName)}
+        </div>
 
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            Project workspace
-          </div>
-
-          <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+        <div className="min-w-0">
+          <h1
+            title={projectName}
+            className="truncate text-2xl font-semibold tracking-[-0.025em] text-zinc-900 sm:text-[1.75rem] sm:leading-9"
+          >
             {projectName}
           </h1>
 
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Manage your project, team members, and source
-            code.
+          <p className="mt-0.5 text-sm leading-6 text-zinc-500">
+            Manage your project, team members, and source code.
           </p>
         </div>
+      </div>
 
+      <div className="flex shrink-0 items-center gap-2">
         {isOwner && (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={onDelete}
             disabled={deleting}
-            className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {deleting ? 'Deleting...' : 'Delete project'}
-          </button>
+            <Icon name="trash" />
+            {deleting ? "Deleting…" : "Delete project"}
+          </Button>
         )}
+
+        <Button
+          onClick={() => navigate(`/projects/${projectId}/source`)}
+        >
+          <Icon name="code" />
+          Manage source code
+        </Button>
       </div>
     </header>
   );
